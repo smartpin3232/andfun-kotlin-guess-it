@@ -16,5 +16,108 @@
 
 package com.example.android.guesstheword.screens.game
 
-// TODO (02) Create the GameViewModel class, extending ViewModel
-// TODO (03) Add init and override onCleared; Add log statements to both
+import android.os.CountDownTimer
+import android.text.format.DateUtils
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import timber.log.Timber
+import java.util.*
+
+class GameViewModel: ViewModel(){
+
+    companion object{
+        private const val DONE = 0L
+        private const val ONE_SECOND = 1000L
+        private const val COUNTDOWN_TIME = 10000L
+    }
+
+    private val timer: CountDownTimer
+
+    private val _time = MutableLiveData<String>()
+    val time :LiveData<String>
+        get() = _time
+
+    var word = ""
+    var score = MutableLiveData<Int>()
+
+    private val _eventGameFinish = MutableLiveData<Boolean>()
+    val eventGameFinish : LiveData<Boolean>
+        get() = _eventGameFinish
+
+    private lateinit var wordList: MutableList<String>
+
+    init {
+        _eventGameFinish.value = false
+        Timber.i("GameViewModel created!")
+        resetList()
+        score.value = 0
+
+
+        timer = object : CountDownTimer(COUNTDOWN_TIME, ONE_SECOND){
+            override fun onFinish() {
+                _eventGameFinish.value = true
+            }
+
+            override fun onTick(p0: Long) {
+
+                _time.value = DateUtils.formatElapsedTime(p0/1000)
+            }
+
+        }.start()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Timber.i("GameViewModel destroyed!")
+        timer.cancel()
+    }
+
+    private fun resetList() {
+        wordList = mutableListOf(
+                "queen",
+                "hospital",
+                "basketball",
+                "cat",
+                "change",
+                "snail",
+                "soup",
+                "calendar",
+                "sad",
+                "desk",
+                "guitar",
+                "home",
+                "railway",
+                "zebra",
+                "jelly",
+                "car",
+                "crow",
+                "trade",
+                "bag",
+                "roll",
+                "bubble"
+        )
+        wordList.shuffle()
+    }
+    private fun nextWord() {
+        //Select and remove a word from the list
+        if (wordList.isEmpty()) {
+           resetList()
+        }
+        word = wordList.removeAt(0)
+
+    }
+
+    fun onSkip() {
+        score.value = (score.value)?.minus(1)
+        nextWord()
+    }
+
+    fun onCorrect() {
+        score.value = (score.value)?.plus(1)
+        nextWord()
+    }
+    fun onGameFinishComplete(){
+        _eventGameFinish.value = false
+    }
+}

@@ -20,25 +20,26 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProviders.of
+import androidx.lifecycle.ViewModelStores.of
 import androidx.navigation.fragment.NavHostFragment.findNavController
 import com.example.android.guesstheword.R
 import com.example.android.guesstheword.databinding.GameFragmentBinding
+import timber.log.Timber
+import java.util.Set.of
 
 /**
  * Fragment where the game is played
  */
 class GameFragment : Fragment() {
 
-    // The current word
-    private var word = ""
-
-    // The current score
-    private var score = 0
-
-    // The list of words - the front of the list is the next word to guess
-    private lateinit var wordList: MutableList<String>
+    private  lateinit var viewModel: GameViewModel
 
     private lateinit var binding: GameFragmentBinding
 
@@ -53,92 +54,58 @@ class GameFragment : Fragment() {
                 false
         )
 
-        // TODO (04) Create and initialize a GameViewModel, using ViewModelProvider; Add a log
+        Timber.i("Called ViewModelProviders.of!")
+        // 使用Lifecycle創建ViewModel
+        viewModel = ViewModelProviders.of(this).get(GameViewModel::class.java)
+
         // statement
 
-        resetList()
-        nextWord()
 
-        binding.correctButton.setOnClickListener { onCorrect() }
-        binding.skipButton.setOnClickListener { onSkip() }
-        updateScoreText()
+        binding.correctButton.setOnClickListener {
+            viewModel.onCorrect()
+            updateWordText()
+        }
+        binding.skipButton.setOnClickListener {
+            viewModel.onSkip()
+            updateWordText()
+        }
+
+        viewModel.score.observe(this, Observer {newScore ->
+            binding.scoreText.text = newScore.toString()
+        })
+
+        viewModel.eventGameFinish.observe(this, Observer { hasFinished ->
+            if(hasFinished){
+                gameFinished()
+                viewModel.onGameFinishComplete()
+            }
+        })
+
+        viewModel.time.observe(this, Observer { count->
+            binding.timerText.text = count.toString()
+        })
+
         updateWordText()
         return binding.root
 
     }
 
-    /**
-     * Resets the list of words and randomizes the order
-     */
-    private fun resetList() {
-        wordList = mutableListOf(
-                "queen",
-                "hospital",
-                "basketball",
-                "cat",
-                "change",
-                "snail",
-                "soup",
-                "calendar",
-                "sad",
-                "desk",
-                "guitar",
-                "home",
-                "railway",
-                "zebra",
-                "jelly",
-                "car",
-                "crow",
-                "trade",
-                "bag",
-                "roll",
-                "bubble"
-        )
-        wordList.shuffle()
-    }
 
     /**
      * Called when the game is finished
      */
     private fun gameFinished() {
-        val action = GameFragmentDirections.actionGameToScore(score)
+        val action = GameFragmentDirections.actionGameToScore(viewModel.score.value ?: 0)
         findNavController(this).navigate(action)
-    }
-
-    /**
-     * Moves to the next word in the list
-     */
-    private fun nextWord() {
-        //Select and remove a word from the list
-        if (wordList.isEmpty()) {
-            gameFinished()
-        } else {
-            word = wordList.removeAt(0)
-        }
-        updateWordText()
-        updateScoreText()
-    }
-
-    /** Methods for buttons presses **/
-
-    private fun onSkip() {
-        score--
-        nextWord()
-    }
-
-    private fun onCorrect() {
-        score++
-        nextWord()
+//        Toast.makeText(this.activity,"Game has finished", Toast.LENGTH_SHORT).show()
     }
 
     /** Methods for updating the UI **/
 
     private fun updateWordText() {
-        binding.wordText.text = word
+        binding.wordText.text = viewModel.word
 
     }
 
-    private fun updateScoreText() {
-        binding.scoreText.text = score.toString()
-    }
+
 }
