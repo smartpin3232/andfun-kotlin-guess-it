@@ -20,11 +20,19 @@ import android.os.CountDownTimer
 import android.text.format.DateUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 import timber.log.Timber
 import java.util.*
 
+//嗡嗡聲參數
+private val CORRECT_BUZZ_PATTERN = longArrayOf(100, 100, 100, 100, 100, 100)
+private val PANIC_BUZZ_PATTERN = longArrayOf(0, 200)
+private val GAME_OVER_BUZZ_PATTERN = longArrayOf(0, 2000)
+private val NO_BUZZ_PATTERN = longArrayOf(0)
+
 class GameViewModel: ViewModel(){
+
 
     companion object{
         private const val DONE = 0L
@@ -34,9 +42,13 @@ class GameViewModel: ViewModel(){
 
     private val timer: CountDownTimer
 
-    private val _time = MutableLiveData<String>()
-    val time :LiveData<String>
+    private val _time = MutableLiveData<Long>()
+    val time :LiveData<Long>
         get() = _time
+
+    val currentTimeString = Transformations.map(time) { currentTime->
+        DateUtils.formatElapsedTime(currentTime)
+    }
 
     var word = ""
     var score = MutableLiveData<Int>()
@@ -48,6 +60,7 @@ class GameViewModel: ViewModel(){
     private lateinit var wordList: MutableList<String>
 
     init {
+
         _eventGameFinish.value = false
         Timber.i("GameViewModel created!")
         resetList()
@@ -61,7 +74,7 @@ class GameViewModel: ViewModel(){
 
             override fun onTick(p0: Long) {
 
-                _time.value = DateUtils.formatElapsedTime(p0/1000)
+                _time.value = p0/1000
             }
 
         }.start()
@@ -120,4 +133,12 @@ class GameViewModel: ViewModel(){
     fun onGameFinishComplete(){
         _eventGameFinish.value = false
     }
+
+
+}
+enum class BuzzType(val pattern: LongArray) {
+    CORRECT(CORRECT_BUZZ_PATTERN),
+    GAME_OVER(GAME_OVER_BUZZ_PATTERN),
+    COUNTDOWN_PANIC(PANIC_BUZZ_PATTERN),
+    NO_BUZZ(NO_BUZZ_PATTERN)
 }
